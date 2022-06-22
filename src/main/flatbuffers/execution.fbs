@@ -1,0 +1,56 @@
+namespace com.example.flatbuffers;
+
+enum FBExecutionType: byte {
+    NEW,
+    AMEND,
+    CANCEL
+}
+
+enum FBSide: byte {
+    BUY = 1,
+    SELL_LONG = 2,
+    SELL_SHORT = 5
+}
+
+enum FBTimeInForce: byte {
+    DAY = 0,
+    GTC = 1,
+    AT_OPEN = 2,
+    IOC = 3,
+    FOK = 4,
+    GTD = 6
+}
+
+enum FBCapacity: byte {
+    P, // principal
+    A, // agency and default
+    R, // riskless principal
+    M, // mixed capacity
+}
+
+enum FBOrderType: byte { // Fix values are used
+    MARKET = 1,
+    LIMIT = 2,
+    STOP = 3,
+    STOP_LIMIT = 4,
+}
+
+table FBUsStreetExecution {
+    execution_id: string;
+    order_id: string;
+    source_system_id: string;
+    side: FBSide = BUY;
+    order_type: FBOrderType = MARKET;
+    time_in_force: FBTimeInForce;
+    capacity: FBCapacity = A;
+    instrument_id: long;
+    exchange_name: string;
+    internal_id: long;
+    execution_type: FBExecutionType = NEW;
+    last_qty: int;
+    last_price: double;
+    transact_time: long;
+    book_id: long;
+}
+
+root_type FBUsStreetExecution;
