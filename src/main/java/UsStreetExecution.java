@@ -1,159 +1,63 @@
 public class UsStreetExecution {
 
-    private String executionId;
-    private String orderId;
-    private String sourceSystemId;
-    private Side side;
-    private OrderType orderType;
-    private TimeInForce timeInForce;
-    private Capacity capacity;
-    private long instrumentId;
-    private String exchangeName;
-    private long internalId;
-    private ExecutionType executionType;
-    private int lastQty;
-    private double lastPrice;
-    private long transactTime;
-    private long bookId;
+   private FrontOffice frontOffice;
 
-    public String getExecutionId() {
-        return executionId;
+   private SourceSystem sourceSystem;
+
+   private Order order;
+
+   private Exchange exchange;
+
+   private Execution execution;
+
+    public FrontOffice getFrontOffice() {
+        return frontOffice;
     }
 
-    public void setExecutionId(String executionId) {
-        this.executionId = executionId;
+    public void setFrontOffice(FrontOffice frontOffice) {
+        this.frontOffice = frontOffice;
     }
 
-    public String getOrderId() {
-        return orderId;
+    public SourceSystem getSourceSystem() {
+        return sourceSystem;
     }
 
-    public void setOrderId(String orderId) {
-        this.orderId = orderId;
+    public void setSourceSystem(SourceSystem sourceSystem) {
+        this.sourceSystem = sourceSystem;
     }
 
-    public String getSourceSystemId() {
-        return sourceSystemId;
+    public Order getOrder() {
+        return order;
     }
 
-    public void setSourceSystemId(String sourceSystemId) {
-        this.sourceSystemId = sourceSystemId;
+    public void setOrder(Order order) {
+        this.order = order;
     }
 
-    public Side getSide() {
-        return side;
+    public Exchange getExchange() {
+        return exchange;
     }
 
-    public void setSide(Side side) {
-        this.side = side;
+    public void setExchange(Exchange exchange) {
+        this.exchange = exchange;
     }
 
-    public OrderType getOrderType() {
-        return orderType;
+    public Execution getExecution() {
+        return execution;
     }
 
-    public void setOrderType(OrderType orderType) {
-        this.orderType = orderType;
-    }
-
-    public TimeInForce getTimeInForce() {
-        return timeInForce;
-    }
-
-    public void setTimeInForce(TimeInForce timeInForce) {
-        this.timeInForce = timeInForce;
-    }
-
-    public Capacity getCapacity() {
-        return capacity;
-    }
-
-    public void setCapacity(Capacity capacity) {
-        this.capacity = capacity;
-    }
-
-    public long getInstrumentId() {
-        return instrumentId;
-    }
-
-    public void setInstrumentId(long instrumentId) {
-        this.instrumentId = instrumentId;
-    }
-
-    public String getExchangeName() {
-        return exchangeName;
-    }
-
-    public void setExchangeName(String exchangeName) {
-        this.exchangeName = exchangeName;
-    }
-
-    public long getInternalId() {
-        return internalId;
-    }
-
-    public void setInternalId(long internalId) {
-        this.internalId = internalId;
-    }
-
-    public ExecutionType getExecutionType() {
-        return executionType;
-    }
-
-    public void setExecutionType(ExecutionType executionType) {
-        this.executionType = executionType;
-    }
-
-    public int getLastQty() {
-        return lastQty;
-    }
-
-    public void setLastQty(int lastQty) {
-        this.lastQty = lastQty;
-    }
-
-    public double getLastPrice() {
-        return lastPrice;
-    }
-
-    public void setLastPrice(double lastPrice) {
-        this.lastPrice = lastPrice;
-    }
-
-    public long getTransactTime() {
-        return transactTime;
-    }
-
-    public void setTransactTime(long transactTime) {
-        this.transactTime = transactTime;
-    }
-
-    public long getBookId() {
-        return bookId;
-    }
-
-    public void setBookId(long bookId) {
-        this.bookId = bookId;
+    public void setExecution(Execution execution) {
+        this.execution = execution;
     }
 
     @Override
     public String toString() {
         return "UsStreetExecution{" +
-                "executionId='" + executionId + '\'' +
-                ", orderId='" + orderId + '\'' +
-                ", sourceSystemId='" + sourceSystemId + '\'' +
-                ", side=" + side +
-                ", orderType=" + orderType +
-                ", timeInForce=" + timeInForce +
-                ", capacity=" + capacity +
-                ", instrumentId=" + instrumentId +
-                ", exchangeName='" + exchangeName + '\'' +
-                ", internalId=" + internalId +
-                ", executionType=" + executionType +
-                ", lastQty=" + lastQty +
-                ", lastPrice=" + lastPrice +
-                ", transactTime=" + transactTime +
-                ", bookId=" + bookId +
+                "frontOffice=" + getFrontOffice() +
+                ", sourceSystem=" + getSourceSystem() +
+                ", order=" + getOrder() +
+                ", exchange=" + getExchange() +
+                ", execution=" + getExecution() +
                 '}';
     }
 }

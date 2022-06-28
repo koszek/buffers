@@ -1,4 +1,3 @@
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -34,7 +33,7 @@ public class ConverterTest {
         }
 
         System.out.println("Lazily deserialized executions");
-        try (UsExecutionDeserializer deserializer = new UsExecutionDeserializer()) {
+        try (UsExecutionLazyDeserializer deserializer = new UsExecutionLazyDeserializer()) {
             for (byte[] bytes : serializedExecutions) {
                 UsStreetExecution execution = deserializer.deserialize(null, bytes);
                 System.out.println(execution);
@@ -53,17 +52,51 @@ public class ConverterTest {
 
     private UsStreetExecution createRandomExecution() {
         UsStreetExecution execution = new UsStreetExecution();
-        execution.setExecutionId(randomString(10));
-        execution.setOrderId(randomString(10));
-        execution.setSourceSystemId(randomString(10));
-        execution.setSide(randomEnum(Side.class));
-        execution.setOrderType(randomEnum(OrderType.class));
-        execution.setTimeInForce(randomEnum(TimeInForce.class));
-        execution.setCapacity(randomEnum(Capacity.class));
-        execution.setInstrumentId(random.nextLong());
-        execution.setExchangeName(randomString(20));
-        execution.setInternalId(random.nextLong());
-        execution.setExecutionType(randomEnum(ExecutionType.class));
+        execution.setFrontOffice(createRandomFrontOffice());
+        execution.setSourceSystem(createRandomSourceSystem());
+        execution.setOrder(createRandomOrder());
+        execution.setExchange(createRandomExchange());
+        execution.setExecution(createRandomExec());
+        return execution;
+    }
+
+    private FrontOffice createRandomFrontOffice() {
+        FrontOffice frontOffice = new FrontOffice();
+        frontOffice.setExecutionId(randomString(10));
+        frontOffice.setOrderId(randomString(10));
+        return frontOffice;
+    }
+
+    private SourceSystem createRandomSourceSystem() {
+        SourceSystem sourceSystem = new SourceSystem();
+        sourceSystem.setId(randomString(10));
+        sourceSystem.setExecutionId(randomString(10));
+        sourceSystem.setOrderId(randomString(10));
+        return sourceSystem;
+    }
+
+    private Order createRandomOrder() {
+        Order order = new Order();
+        order.setSide(randomEnum(Side.class));
+        order.setOrderType(randomEnum(OrderType.class));
+        order.setTimeInForce(randomEnum(TimeInForce.class));
+        order.setCapacity(randomEnum(Capacity.class));
+        order.setInstrumentId(random.nextLong());
+        return order;
+    }
+
+    private Exchange createRandomExchange() {
+        Exchange exchange = new Exchange();
+        exchange.setName(randomString(10));
+        exchange.setExecutionId(randomString(10));
+        exchange.setOrderId(randomString(10));
+        return exchange;
+    }
+
+    private Execution createRandomExec() {
+        Execution execution = new Execution();
+        execution.setId(random.nextInt());
+        execution.setType(randomEnum(ExecutionType.class));
         execution.setLastQty(random.nextInt());
         execution.setLastPrice(random.nextDouble());
         execution.setTransactTime(random.nextLong());

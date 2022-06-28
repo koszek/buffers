@@ -1,18 +1,18 @@
 namespace com.example.flatbuffers;
 
-enum FBExecutionType: byte {
+enum FbExecutionType: byte {
     NEW,
     AMEND,
     CANCEL
 }
 
-enum FBSide: byte {
+enum FbSide: byte {
     BUY = 1,
     SELL_LONG = 2,
     SELL_SHORT = 5
 }
 
-enum FBTimeInForce: byte {
+enum FbTimeInForce: byte {
     DAY = 0,
     GTC = 1,
     AT_OPEN = 2,
@@ -21,36 +21,77 @@ enum FBTimeInForce: byte {
     GTD = 6
 }
 
-enum FBCapacity: byte {
+enum FbCapacity: byte {
     P, // principal
     A, // agency and default
     R, // riskless principal
     M, // mixed capacity
 }
 
-enum FBOrderType: byte { // Fix values are used
+enum FbOrderType: byte { // Fix values are used
     MARKET = 1,
     LIMIT = 2,
     STOP = 3,
     STOP_LIMIT = 4,
 }
 
-table FBUsStreetExecution {
+
+table FbSourceSystem {
+    /**
+    System id that represents the source of the transaction message.
+    Will be in the format APPLICATION-REGION-INSTANCE eg OMS-EMEA-EOMS.
+    */
+    id: string;
     execution_id: string;
     order_id: string;
-    source_system_id: string;
-    side: FBSide = BUY;
-    order_type: FBOrderType = MARKET;
-    time_in_force: FBTimeInForce;
-    capacity: FBCapacity = A;
-    instrument_id: long;
-    exchange_name: string;
-    internal_id: long;
-    execution_type: FBExecutionType = NEW;
-    last_qty: int;
-    last_price: double;
-    transact_time: long;
-    book_id: long;
 }
 
-root_type FBUsStreetExecution;
+table FbFrontOffice {
+    // execution id of the trade which is unique across all instances of execution system
+    execution_id: string; //todo: Two sources from atm8?
+    order_id: string; //todo: Two sources from atm8?
+}
+
+table FbOrder {
+    side: FbSide = BUY; // Side direction from client perspective
+    order_type: FbOrderType = MARKET;
+    time_in_force: FbTimeInForce;
+    capacity: FbCapacity = A;
+    instrument_id: long;
+}
+
+table FbExchage {
+    name: string; //todo: part of exchange? last_marke? exchangeVenue?
+    /**
+    Used to provide ExecId(17) used by an exchange, Id assigned to each execution by exchange.
+    Must be unique within the same trading day
+    */
+    execution_id: string;
+    /**
+    Used to provide the OrderI(37) used by an exchange. Id assigned to each order by exchange.
+    Sent back to execution system for ack.
+    */
+    order_id: string;
+}
+
+table FbExecution {
+    id: long; // GBA generated identifier
+    type: FbExecutionType = NEW;
+
+    last_qty: int; //@todo: double?
+    last_price: double;
+
+    transact_time: long;
+    book_id: long; //todo: part of exec or order? book or avp?
+}
+
+table FbUsStreetExecution {
+    front_office: FbFrontOffice;
+    source_system: FbSourceSystem;
+    order: FbOrder;
+    exchange: FbExchage;
+    execution: FbExecution;
+}
+
+
+root_type FbUsStreetExecution;
