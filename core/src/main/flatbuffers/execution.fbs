@@ -60,7 +60,7 @@ table FbOrder {
     instrument_id: long;
 }
 
-table FbExchage {
+table FbExchange {
     name: string; //todo: part of exchange? last_marke? exchangeVenue?
     /**
     Used to provide ExecId(17) used by an exchange, Id assigned to each execution by exchange.
@@ -78,7 +78,7 @@ table FbExecution {
     id: long; // GBA generated identifier
     type: FbExecutionType = NEW;
 
-    last_qty: int; //@todo: double?
+    last_qty: int; //todo: double?
     last_price: double;
 
     transact_time: long;
@@ -89,7 +89,7 @@ table FbUsStreetExecution {
     front_office: FbFrontOffice;
     source_system: FbSourceSystem;
     order: FbOrder;
-    exchange: FbExchage;
+    exchange: FbExchange;
     execution: FbExecution;
 }
 

@@ -1,4 +1,5 @@
 import com.example.flatbuffers.FbUsStreetExecution;
+import model.*;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.nio.ByteBuffer;

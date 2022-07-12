@@ -1,3 +1,8 @@
+package model;
+
+import annotation.GenerateHelper;
+
+@GenerateHelper
 public class Order {
 
     private Side side;

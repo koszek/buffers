@@ -1,17 +1,22 @@
-public class Exchange {
+package model;
 
-    private String name;
+import annotation.GenerateHelper;
+
+@GenerateHelper
+public class SourceSystem {
+
+    private String id;
 
     private String executionId;
 
     private String orderId;
 
-    public String getName() {
-        return name;
+    public String getId() {
+        return id;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getExecutionId() {
@@ -32,8 +37,8 @@ public class Exchange {
 
     @Override
     public String toString() {
-        return "Exchange{" +
-                "name='" + getName() + '\'' +
+        return "SourceSystem{" +
+                "id='" + getId() + '\'' +
                 ", executionId='" + getExecutionId() + '\'' +
                 ", orderId='" + getOrderId() + '\'' +
                 '}';

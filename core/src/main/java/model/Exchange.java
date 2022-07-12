@@ -1,8 +1,23 @@
-public class FrontOffice {
+package model;
+
+import annotation.GenerateHelper;
+
+@GenerateHelper
+public class Exchange {
+
+    private String name;
 
     private String executionId;
 
     private String orderId;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     public String getExecutionId() {
         return executionId;
@@ -22,8 +37,9 @@ public class FrontOffice {
 
     @Override
     public String toString() {
-        return "FrontOffice{" +
-                "executionId='" + getExecutionId() + '\'' +
+        return "Exchange{" +
+                "name='" + getName() + '\'' +
+                ", executionId='" + getExecutionId() + '\'' +
                 ", orderId='" + getOrderId() + '\'' +
                 '}';
     }

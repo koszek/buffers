@@ -1,3 +1,8 @@
+package model;
+
+import annotation.GenerateHelper;
+
+@GenerateHelper
 public class Execution {
 
     private long id;

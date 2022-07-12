@@ -1,14 +1,21 @@
+package model;
+
+import annotation.GenerateDeserializer;
+import annotation.GenerateSerializer;
+
+@GenerateSerializer
+@GenerateDeserializer
 public class UsStreetExecution {
 
-   private FrontOffice frontOffice;
+    private FrontOffice frontOffice;
 
-   private SourceSystem sourceSystem;
+    private SourceSystem sourceSystem;
 
-   private Order order;
+    private Order order;
 
-   private Exchange exchange;
+    private Exchange exchange;
 
-   private Execution execution;
+    private Execution execution;
 
     public FrontOffice getFrontOffice() {
         return frontOffice;

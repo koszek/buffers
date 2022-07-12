@@ -1,18 +1,13 @@
-public class SourceSystem {
+package model;
 
-    private String id;
+import annotation.GenerateHelper;
+
+@GenerateHelper
+public class FrontOffice {
 
     private String executionId;
 
     private String orderId;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
 
     public String getExecutionId() {
         return executionId;
@@ -32,9 +27,8 @@ public class SourceSystem {
 
     @Override
     public String toString() {
-        return "SourceSystem{" +
-                "id='" + getId() + '\'' +
-                ", executionId='" + getExecutionId() + '\'' +
+        return "FrontOffice{" +
+                "executionId='" + getExecutionId() + '\'' +
                 ", orderId='" + getOrderId() + '\'' +
                 '}';
     }

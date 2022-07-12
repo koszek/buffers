@@ -1,42 +1,43 @@
+import helper.UsStreetExecutionDeserializer;
+import helper.UsStreetExecutionSerializer;
+import model.*;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import static org.junit.Assert.assertEquals;
+
 public class ConverterTest {
 
-    private Random random = new Random();
+    private final Random random = new Random();
 
     @Test
     public void testSerde() {
         List<UsStreetExecution> executions = createExecutions();
-        System.out.println("Original executions");
-        for (UsStreetExecution execution : executions) {
-            System.out.println(execution);
-        }
 
         List<byte[]> serializedExecutions = new ArrayList<>(executions.size());
-        try (UsExecutionSerializer serializer = new UsExecutionSerializer()) {
+        try (UsStreetExecutionSerializer serializer = new UsStreetExecutionSerializer()) {
             for (UsStreetExecution execution : executions) {
                 byte[] bytes = serializer.serialize(null, execution);
                 serializedExecutions.add(bytes);
             }
         }
 
-        System.out.println("Deserialized executions");
-        try (UsExecutionDeserializer deserializer = new UsExecutionDeserializer()) {
-            for (byte[] bytes : serializedExecutions) {
+        try (UsStreetExecutionDeserializer deserializer = new UsStreetExecutionDeserializer()) {
+            for (int i = 0; i < serializedExecutions.size(); i++) {
+                byte[] bytes = serializedExecutions.get(i);
                 UsStreetExecution execution = deserializer.deserialize(null, bytes);
-                System.out.println(execution);
+                assertEquals(executions.get(i).toString(), execution.toString());
             }
         }
 
-        System.out.println("Lazily deserialized executions");
         try (UsExecutionLazyDeserializer deserializer = new UsExecutionLazyDeserializer()) {
-            for (byte[] bytes : serializedExecutions) {
+            for (int i = 0; i < serializedExecutions.size(); i++) {
+                byte[] bytes = serializedExecutions.get(i);
                 UsStreetExecution execution = deserializer.deserialize(null, bytes);
-                System.out.println(execution);
+                assertEquals(executions.get(i).toString(), execution.toString());
             }
         }
     }
