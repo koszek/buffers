@@ -1,15 +1,18 @@
 package model;
 
+
 import annotation.GenerateHelper;
 
 @GenerateHelper
-public class FrontOffice {
+public class ExecutionSystem {
+
+    private String name;
 
     private String executionId;
 
     private String orderId;
 
-    private ExecutionSystem executionSystem;
+    private String clientName;
 
     public String getExecutionId() {
         return executionId;
@@ -27,20 +30,29 @@ public class FrontOffice {
         this.orderId = orderId;
     }
 
-    public ExecutionSystem getExecutionSystem() {
-        return executionSystem;
+    public String getName() {
+        return name;
     }
 
-    public void setExecutionSystem(ExecutionSystem executionSystem) {
-        this.executionSystem = executionSystem;
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getClientName() {
+        return clientName;
+    }
+
+    public void setClientName(String clientName) {
+        this.clientName = clientName;
     }
 
     @Override
     public String toString() {
-        return "FrontOffice{" +
-                "executionId='" + getExecutionId() + '\'' +
+        return "ExecutionSystem{" +
+                "name='" + getName() + '\'' +
+                ", executionId='" + getExecutionId() + '\'' +
                 ", orderId='" + getOrderId() + '\'' +
-                ", executionSystem=" + getExecutionSystem() +
+                ", clientName='" + getClientName() + '\'' +
                 '}';
     }
 }

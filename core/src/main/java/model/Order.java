@@ -13,7 +13,13 @@ public class Order {
 
     private Capacity capacity;
 
+    private String securityId;
+
     private long instrumentId;
+
+    private String portfolioCode;
+
+    private long bookId;
 
     public Side getSide() {
         return side;
@@ -53,6 +59,30 @@ public class Order {
 
     public void setInstrumentId(long instrumentId) {
         this.instrumentId = instrumentId;
+    }
+
+    public String getSecurityId() {
+        return securityId;
+    }
+
+    public void setSecurityId(String securityId) {
+        this.securityId = securityId;
+    }
+
+    public String getPortfolioCode() {
+        return portfolioCode;
+    }
+
+    public void setPortfolioCode(String portfolioCode) {
+        this.portfolioCode = portfolioCode;
+    }
+
+    public long getBookId() {
+        return bookId;
+    }
+
+    public void setBookId(long bookId) {
+        this.bookId = bookId;
     }
 
     @Override

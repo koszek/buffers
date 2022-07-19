@@ -35,6 +35,24 @@ enum FbOrderType: byte { // Fix values are used
     STOP_LIMIT = 4,
 }
 
+enum FbCounterpartyCodeType: byte {
+    DTC,                                    // ATM8.ContraBroker DTC code of exchanges
+    BIC                                     // ATM8.ExecutingFirm 1st 4 chars of BIC or SWIFT codes
+}
+
+enum FbCounterpartyType: byte {
+    BROKER,                                 // ATM8.ExecutingFirm != null
+    EXCHANGE                                // ATM8.ContraBroker != null
+}
+
+table FbCounterparty {
+    counterparty_type:             FbCounterpartyType;     // ATM8.ExecutingFirm or ATM8.ContraBroker
+    code:             string;
+    counterparty_code_type:        FbCounterpartyCodeType;
+
+    execution_id:     string;               // ATM8.ExchangeExecID
+    order_id:         string;               // ATM8.ExchangeOrderID
+}
 
 table FbSourceSystem {
     /**
@@ -46,52 +64,74 @@ table FbSourceSystem {
     order_id: string;
 }
 
-table FbFrontOffice {
-    // execution id of the trade which is unique across all instances of execution system
-    execution_id: string; //todo: Two sources from atm8?
-    order_id: string; //todo: Two sources from atm8?
+/**
+Identifiers of order in system wich execute orders on the market
+*/
+table FbExecutionSystem {
+    name: string; // ATM8.SrcSysID
+    execution_id: string; // ATM8.ExecID
+    order_id: string; // ATM8.OrderID
+    client_name: string; // ATM8.SrcSysID user name in executionReport system. taken from atm8 source system @todo: is it client or system?
 }
 
-table FbOrder {
-    side: FbSide = BUY; // Side direction from client perspective
-    order_type: FbOrderType = MARKET;
-    time_in_force: FbTimeInForce;
-    capacity: FbCapacity = A;
-    instrument_id: long;
+/**
+  Representation of FO for concrete executionReport report. Some parts can be missed.
+*/
+table FbFrontOffice { //todo: merge of US flow?
+    execution_system: FbExecutionSystem;
+
+    execution_id:     string;               // ATM8.ExecID
+    order_id:         string;               // ATM8.OrderID
 }
 
 table FbExchange {
     name: string; //todo: part of exchange? last_marke? exchangeVenue?
     /**
-    Used to provide ExecId(17) used by an exchange, Id assigned to each execution by exchange.
+    Used to provide ExecId(17) used by an exchange, Id assigned to each executionReport by exchange.
     Must be unique within the same trading day
     */
     execution_id: string;
     /**
     Used to provide the OrderI(37) used by an exchange. Id assigned to each order by exchange.
-    Sent back to execution system for ack.
+    Sent back to executionReport system for ack.
     */
     order_id: string;
 }
 
-table FbExecution {
-    id: long; // GBA generated identifier
-    type: FbExecutionType = NEW;
+/**
+  Representation of Order in FO in fact in order managment part
+*/
+table FbOrder {
+    side:             FbSide      = BUY;      // ATM8.Side Side direction from client perspective
+    order_type:       FbOrderType = MARKET;   // ATM8.OrderType
+    time_in_force:    FbTimeInForce;          // ATM8.TimeInForce
+    capacity:         FbCapacity  = A;        // ATM8.Capacity
 
-    last_qty: int; //todo: double?
-    last_price: double;
+    security_id:      string;               // ATM8.SecurityID FO or client instrument identifier. Can ber RIC, ISIN etc
+    instrument_id:    long;                 // gba instrument public identifier
 
-    transact_time: long;
-    book_id: long; //todo: part of exec or order? book or avp?
+    portfolio_code:   string;               // ATM8.Portfolio todo:? FO representation of client AVP group
+    book_id:          long;                 // gba book public identifier
 }
 
-table FbUsStreetExecution {
-    front_office: FbFrontOffice;
-    source_system: FbSourceSystem;
-    order: FbOrder;
-    exchange: FbExchange;
-    execution: FbExecution;
+table FbExecutionReport {
+    id:               long;                 // GBA generated public identifier
+    execution_type:   FbExecutionType = NEW;// ATM8.ExecType
+
+    last_qty:         double;               // ATM8.LastQty
+    last_price:       double;               // ATM8.LastPx
+
+    transact_time:    long;                 // ATM8.TransactTime
+
+    last_market:      string;               // ATM8.LastMkt MIC name of market where executionReport was really executed
 }
 
 
-root_type FbUsStreetExecution;
+table FbUsStreetExecutionReport {
+    front_office:     FbFrontOffice;
+    order:            FbOrder;
+    counterparty:     FbCounterparty;
+    execution_report: FbExecutionReport;
+}
+
+root_type FbUsStreetExecutionReport;

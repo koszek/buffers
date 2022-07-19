@@ -1,3 +1,5 @@
+import com.squareup.javapoet.*;
+
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -5,14 +7,16 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.tools.JavaFileObject;
 import java.io.PrintWriter;
-import java.text.MessageFormat;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @SupportedAnnotationTypes({"annotation.GenerateSerializer", "annotation.GenerateDeserializer", "annotation.GenerateHelper"})
@@ -26,6 +30,16 @@ public class MyProcessor extends AbstractProcessor {
     private static final String GENERATE_DESERIALIZER_ANNOTATION = "GenerateDeserializer";
 
     private static final String HELPERS_PACKAGE = "helper";
+
+    private static final String KAFKA_PACKAGE = "org.apache.kafka.common.serialization";
+
+    private static final String FLAT_BUFFERS_PACKAGE = "com.example.flatbuffers";
+
+    private static final String GOOGLE_FLAT_BUFFERS_PACKAGE = "com.google.flatbuffers";
+
+    private static final ClassName BUILDER_CLASS_NAME = ClassName.get(GOOGLE_FLAT_BUFFERS_PACKAGE, "FlatBufferBuilder");
+
+    private static final String FB_PREFIX = "Fb";
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
@@ -60,10 +74,13 @@ public class MyProcessor extends AbstractProcessor {
     private void generateHelperClass(Element element) throws Exception {
         List<Element> stringFields = new ArrayList<>();
         List<Element> scalarFields = new ArrayList<>();
+        List<Element> nestedFields = new ArrayList<>();
         for (Element enclosedElement : element.getEnclosedElements()) {
             if (enclosedElement.getKind() == ElementKind.FIELD) {
                 if (enclosedElement.asType().toString().equals("java.lang.String")) {
                     stringFields.add(enclosedElement);
+                } else if (isAnnotatedWithGenerateHelper(enclosedElement)) {
+                    nestedFields.add(enclosedElement);
                 } else {
                     scalarFields.add(enclosedElement);
                 }
@@ -72,70 +89,113 @@ public class MyProcessor extends AbstractProcessor {
 
         String entityClassName = element.getSimpleName().toString();
         String helperClassName = entityClassName + "Helper";
-        String entityVar = firstLetterToLowerCase(entityClassName);
+        ClassName elementClassName = getClassName(element);
 
-        JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(HELPERS_PACKAGE + "." + helperClassName);
-        try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
-            println(out, "package {0};", HELPERS_PACKAGE);
-            println(out, "import com.example.flatbuffers.*;");
-            println(out, "import com.google.flatbuffers.FlatBufferBuilder;");
-            println(out, "import model.*;");
-
-            println(out, "public class {0} '{'\n", helperClassName);
-
-            println(out, 1, "public static int serialize{0}({0} {1}, FlatBufferBuilder builder) '{'", entityClassName, entityVar);
-
-            for (Element field : stringFields) {
-                String var = getFieldName(field);
-                String getter = getGetterName(var);
-                println(out, 2, "int {0} = builder.createString({1}.{2}());", var, entityVar, getter);
-            }
-
-            String fbClassName = "Fb" + entityClassName;
-            println(out, 2, "{0}.start{0}(builder);", fbClassName);
-
-            for (Element field : stringFields) {
-                String var = getFieldName(field);
-                String methodName = "add" + firstLetterToUpperCase(var);
-                println(out, 2, "{0}.{1}(builder, {2});", fbClassName, methodName, var);
-            }
-
-            for (Element field : scalarFields) {
-                String var = getFieldName(field);
-                String addMethodName = "add" + firstLetterToUpperCase(var);
-                String getter = getGetterName(var);
-                if (isEnum(field)) {
-                    println(out, 2, "{0}.{1}(builder, (byte) {2}.{3}().ordinal());", fbClassName, addMethodName, entityVar, getter);
-                } else {
-                    println(out, 2, "{0}.{1}(builder, {2}.{3}());", fbClassName, addMethodName, entityVar, getter);
-                }
-            }
-
-            println(out, 2, "return {0}.end{0}(builder);", fbClassName);
-            println(out, 1, "'}'\n");
-
-            String fbVar = "fb" + entityClassName;
-
-            println(out, 1, "public static {0} deserialize{0}(Fb{0} {1}) '{'", entityClassName, fbVar);
-            println(out, 2, "{0} {1} = new {0}();", entityClassName, entityVar);
-            for (Element stringField : stringFields) {
-                String var = stringField.toString();
-                String setter = "set" + var.substring(0, 1).toUpperCase() + var.substring(1);
-                println(out, 2, "{0}.{1}({2}.{3}());", entityVar, setter, fbVar, var);
-            }
-            for (Element field : scalarFields) {
-                String var = field.toString();
-                String setter = "set" + var.substring(0, 1).toUpperCase() + var.substring(1);
-                if (isEnum(field)) {
-                    println(out, 2, "{0}.{1}({2}.values()[{3}.{4}()]);", entityVar, setter, field.asType(), fbVar, var);
-                } else {
-                    println(out, 2, "{0}.{1}({2}.{3}());", entityVar, setter, fbVar, var);
-                }
-            }
-            println(out, 2, "return {0};", entityVar);
-            println(out, 1, "'}'");
-            println(out, "'}'");
+        MethodSpec.Builder serializeMethodBuilder = MethodSpec.methodBuilder("serialize")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(int.class)
+                .addParameter(elementClassName, "var")
+                .addParameter(BUILDER_CLASS_NAME, "builder");
+        for (Element field : stringFields) {
+            String fieldName = getFieldName(field);
+            String getter = getGetterName(fieldName);
+            serializeMethodBuilder.addStatement("int $L = builder.createString(var.$L())", fieldName, getter);
         }
+
+        for (Element field : nestedFields) {
+            String fieldName = getFieldName(field);
+            String FieldName = firstLetterToUpperCase(fieldName);
+            String getter = getGetterName(fieldName);
+            ClassName helper = ClassName.get(HELPERS_PACKAGE, FieldName + "Helper");
+            serializeMethodBuilder.addStatement("int $L = $T.serialize(var.$L(), builder)", fieldName, helper, getter);
+        }
+
+        String fbClassName = FB_PREFIX + entityClassName;
+        ClassName cn = ClassName.get(FLAT_BUFFERS_PACKAGE, fbClassName);
+        serializeMethodBuilder.addStatement("$T.start$L(builder)", cn, fbClassName);
+
+        for (Element field : stringFields) {
+            String fieldName = getFieldName(field);
+            String methodName = "add" + firstLetterToUpperCase(fieldName);
+            serializeMethodBuilder.addStatement("$T.$L(builder, $L)", cn, methodName, fieldName);
+        }
+
+        for (Element field : scalarFields) {
+            String fieldName = getFieldName(field);
+            String addMethodName = "add" + firstLetterToUpperCase(fieldName);
+            String getter = getGetterName(fieldName);
+            if (isEnum(field)) {
+                serializeMethodBuilder.addStatement("$T.$L(builder, (byte) var.$L().ordinal())", cn, addMethodName, getter);
+            } else {
+                serializeMethodBuilder.addStatement("$T.$L(builder, var.$L())", cn, addMethodName, getter);
+            }
+        }
+
+        for (Element field : nestedFields) {
+            String var = getFieldName(field);
+            String addMethodName = "add" + firstLetterToUpperCase(var);
+            serializeMethodBuilder.addStatement("$T.$L(builder, $L);", cn, addMethodName, var);
+        }
+
+        serializeMethodBuilder.addStatement("return $T.end$L(builder)", cn, fbClassName);
+
+        String fbVar = FB_PREFIX + entityClassName;
+        MethodSpec.Builder deserializeMethodBuilder = MethodSpec.methodBuilder("deserialize")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(elementClassName)
+                .addParameter(cn, fbVar);
+        deserializeMethodBuilder.addStatement("$T var = new $T()", elementClassName, elementClassName);
+
+        for (Element stringField : stringFields) {
+            String var = stringField.toString();
+            String setter = "set" + var.substring(0, 1).toUpperCase() + var.substring(1);
+            deserializeMethodBuilder.addStatement("var.$L($L.$L())", setter, fbVar, var);
+        }
+
+        for (Element field : scalarFields) {
+            String fieldName = field.toString();
+            String FieldName = firstLetterToUpperCase(fieldName);
+            String setter = "set" + FieldName;
+            if (isEnum(field)) {
+                deserializeMethodBuilder.addStatement("var.$L($T.values()[$L.$L()])",
+                        setter, ClassName.get(field.asType()), fbVar, fieldName);
+            } else {
+                deserializeMethodBuilder.addStatement("var.$L($L.$L())", setter, fbVar, fieldName);
+            }
+        }
+
+        for (Element field : nestedFields) {
+            String fieldName = getFieldName(field);
+            String FieldName = firstLetterToUpperCase(fieldName);
+            ClassName fieldHelper = ClassName.get(HELPERS_PACKAGE, FieldName + "Helper");
+            String setMethodName = "set" + FieldName;
+            deserializeMethodBuilder.addStatement("var.$L($T.deserialize($L.$L()))", setMethodName, fieldHelper, fbVar, fieldName);
+        }
+
+        deserializeMethodBuilder.addStatement("return var");
+
+        JavaFileObject builderFile1 = processingEnv.getFiler().createSourceFile(HELPERS_PACKAGE + "." + helperClassName);
+        TypeSpec serializer = TypeSpec.classBuilder(helperClassName)
+                .addModifiers(Modifier.PUBLIC)
+                .addMethod(serializeMethodBuilder.build())
+                .addMethod(deserializeMethodBuilder.build())
+                .build();
+        JavaFile javaFile = JavaFile.builder(HELPERS_PACKAGE, serializer)
+                .build();
+
+        try (PrintWriter out = new PrintWriter(builderFile1.openWriter())) {
+            javaFile.writeTo(out);
+        }
+    }
+
+    private boolean isAnnotatedWithGenerateHelper(Element element) {
+        if (element.asType() instanceof DeclaredType) {
+            return ((DeclaredType) element.asType()).asElement().getAnnotationMirrors()
+                    .stream()
+                    .map(Objects::toString)
+                    .anyMatch(it -> it.equals("@annotation.GenerateHelper"));
+        }
+        return false;
     }
 
     private void generateSerializerClasses(Set<? extends Element> elements) {
@@ -149,10 +209,9 @@ public class MyProcessor extends AbstractProcessor {
     }
 
     private void generateSerializerClass(Element element) throws Exception {
-        String className = element.getSimpleName().toString();
-        String serializerClassName = className + "Serializer";
+        String elementClass = element.getSimpleName().toString();
+        String serializerClassName = elementClass + "Serializer";
 
-        JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(HELPERS_PACKAGE + "." + serializerClassName);
         List<Element> fields = new ArrayList<>();
         for (Element enclosedElement : element.getEnclosedElements()) {
             if (enclosedElement.getKind() == ElementKind.FIELD) {
@@ -160,36 +219,48 @@ public class MyProcessor extends AbstractProcessor {
             }
         }
 
+        String fbClass = FB_PREFIX + elementClass;
+        ClassName elementClassName = (ClassName) ClassName.get(element.asType());
+        ClassName fbClassName = ClassName.get(FLAT_BUFFERS_PACKAGE, fbClass);
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("serialize")
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .returns(byte[].class)
+                .addParameter(String.class, "topic")
+                .addParameter(elementClassName, "var")
+                .addStatement("$T builder = new $T()", BUILDER_CLASS_NAME, BUILDER_CLASS_NAME);
+
+        for (Element field : fields) {
+            String fieldName = field.toString();
+            String FieldName = firstLetterToUpperCase(fieldName);
+            ClassName helperClassName = ClassName.get(HELPERS_PACKAGE, FieldName + "Helper");
+            builder.addStatement("int $L = $T.serialize(var.get$L(), builder)", fieldName, helperClassName, FieldName);
+        }
+
+        builder.addStatement("$T.start$L(builder)", fbClassName, fbClass);
+
+        for (Element field : fields) {
+            String fieldName = field.toString();
+            String FieldName = firstLetterToUpperCase(fieldName);
+            builder.addStatement("$T.add$L(builder, $L)", fbClassName, FieldName, fieldName);
+        }
+        builder.addStatement("int fb = $L.end$L(builder)", fbClass, fbClass);
+        builder.addStatement("builder.finish(fb)");
+        builder.addStatement("return builder.sizedByteArray()");
+
+        TypeName kafkaDeserializerInterface = ParameterizedTypeName.get(ClassName.get(KAFKA_PACKAGE, "Serializer"),
+                elementClassName);
+        TypeSpec serializer = TypeSpec.classBuilder(serializerClassName)
+                .addSuperinterface(kafkaDeserializerInterface)
+                .addModifiers(Modifier.PUBLIC)
+                .addMethod(builder.build())
+                .build();
+        JavaFile javaFile = JavaFile.builder(HELPERS_PACKAGE, serializer)
+                .build();
+
+        JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(HELPERS_PACKAGE + "." + serializerClassName);
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
-            println(out, "package {0};", HELPERS_PACKAGE);
-            println(out, "import org.apache.kafka.common.serialization.Serializer;");
-            println(out, "import {0}.*;", HELPERS_PACKAGE);
-            println(out, "import {0};", element.asType());
-            println(out, "import com.example.flatbuffers.FbUsStreetExecution;");
-            println(out, "import com.google.flatbuffers.FlatBufferBuilder;\n");
-            println(out, "public class {0} implements Serializer<{1}> '{'\n", serializerClassName, className);
-            println(out, 1, "@Override");
-            println(out, 1, "public byte[] serialize(String topic, {0} var) '{'", className);
-            println(out, 2, "FlatBufferBuilder builder = new FlatBufferBuilder();");
-
-            for (Element field : fields) {
-                String var = field.toString();
-                String varWithCapital = firstLetterToUpperCase(var);
-                println(out, 2, "int {0} = {1}Helper.serialize{1}(var.get{1}(), builder);", var, varWithCapital);
-            }
-
-            println(out, 2, "Fb{0}.startFb{0}(builder);", className);
-
-            for (Element field : fields) {
-                String var = field.toString();
-                String varWithCapital = firstLetterToUpperCase(var);
-                println(out, 2, "Fb{0}.add{1}(builder, {2});", className, varWithCapital, var);
-            }
-            println(out, 2, "int fb = Fb{0}.endFb{0}(builder);", className);
-            println(out, 2, "builder.finish(fb);");
-            println(out, 2, "return builder.sizedByteArray();");
-            println(out, 1, "'}'");
-            println(out, "}");
+            javaFile.writeTo(out);
         }
     }
 
@@ -204,10 +275,10 @@ public class MyProcessor extends AbstractProcessor {
     }
 
     private void generateDeserializerClass(Element element) throws Exception {
-        String className = element.getSimpleName().toString();
-        String deserializerClassName = className + "Deserializer";
+        String elementClass = element.getSimpleName().toString();
+        String deserializerClass = elementClass + "Deserializer";
 
-        JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(HELPERS_PACKAGE + "." + deserializerClassName);
+        JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(HELPERS_PACKAGE + "." + deserializerClass);
         List<Element> fields = new ArrayList<>();
         for (Element enclosedElement : element.getEnclosedElements()) {
             if (enclosedElement.getKind() == ElementKind.FIELD) {
@@ -215,33 +286,42 @@ public class MyProcessor extends AbstractProcessor {
             }
         }
 
-        String fbClassName = "Fb" + className;
-        try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
-            println(out, "package {0};", HELPERS_PACKAGE);
-            println(out, "import com.example.flatbuffers.FbUsStreetExecution;");
-            println(out, "import {0}.*;", HELPERS_PACKAGE);
-            println(out, "import model.UsStreetExecution;");
-            println(out, "import org.apache.kafka.common.serialization.Deserializer;");
-            println(out, "import java.nio.ByteBuffer;");
-            println(out, "public class {0} implements Deserializer<{1}> '{'\n", deserializerClassName, className);
-            println(out, 1, "@Override");
-            println(out, 1, "public {0} deserialize(String topic, byte[] data) '{'", className);
-            println(out, 2, "ByteBuffer byteBuffer = ByteBuffer.wrap(data);");
-            println(out, 2, "{0} fbEntity = {0}.getRootAs{0}(byteBuffer);", fbClassName);
-            println(out, 2, "{0} entity = new {0}();", className);
-            for (Element field : fields) {
-                String fieldName = getFieldName(field);
-                String cap = firstLetterToUpperCase(fieldName);
-                println(out, 2, "entity.set{0}({0}Helper.deserialize{0}(fbEntity.{1}()));", cap, fieldName);
-            }
-            println(out, 2, "return entity;");
-            println(out, 1, "'}'");
-            println(out, "'}'");
-        }
-    }
+        String fbClass = FB_PREFIX + elementClass;
+        ClassName elementClassName = (ClassName) ClassName.get(element.asType());
+        ClassName fbClassName = ClassName.get(FLAT_BUFFERS_PACKAGE, fbClass);
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("deserialize")
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .returns(elementClassName)
+                .addParameter(String.class, "topic")
+                .addParameter(byte[].class, "data")
+                .addStatement("$T byteBuffer = $T.wrap(data)", ByteBuffer.class, ByteBuffer.class)
+                .addStatement("$T fbEntity = $T.$L(byteBuffer)", fbClassName, fbClassName, "getRootAs" + fbClass)
+                .addStatement("$T entity = new $T()", elementClassName, elementClassName);
 
-    private String firstLetterToLowerCase(String string) {
-        return string.substring(0, 1).toLowerCase() + string.substring(1);
+        for (Element field : fields) {
+            String fieldName = getFieldName(field);
+            String FieldName = firstLetterToUpperCase(fieldName);
+            ClassName helperClassName = ClassName.get(HELPERS_PACKAGE, FieldName + "Helper");
+            builder.addStatement("entity.set$L($T.deserialize(fbEntity.$L()))", FieldName, helperClassName, fieldName);
+        }
+        builder.addStatement("return entity");
+
+        TypeName kafkaDeserializerInterface = ParameterizedTypeName.get(ClassName.get(KAFKA_PACKAGE, "Deserializer"),
+                elementClassName);
+
+        TypeSpec deserializer = TypeSpec.classBuilder(deserializerClass)
+                .addSuperinterface(kafkaDeserializerInterface)
+                .addModifiers(Modifier.PUBLIC)
+                .addMethod(builder.build())
+                .build();
+
+        JavaFile javaFile = JavaFile.builder(HELPERS_PACKAGE, deserializer)
+                .build();
+
+        try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
+            javaFile.writeTo(out);
+        }
     }
 
     private String firstLetterToUpperCase(String string) {
@@ -256,17 +336,8 @@ public class MyProcessor extends AbstractProcessor {
         return "get" + firstLetterToUpperCase(field);
     }
 
-    private void println(PrintWriter out, String pattern, Object... params) {
-        println(out, 0, pattern, params);
-    }
-
-    private void println(PrintWriter out, int nestingLevel, String pattern, Object... params) {
-        char[] tabs = new char[nestingLevel];
-        for (int i = 0; i < nestingLevel; i++) {
-            tabs[i] = '\t';
-        }
-        String string = MessageFormat.format(pattern, params);
-        out.println(new String(tabs) + string);
+    private ClassName getClassName(Element element) {
+        return (ClassName) ClassName.get(element.asType());
     }
 
     private boolean isEnum(Element field) {

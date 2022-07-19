@@ -3,19 +3,19 @@ package model;
 import annotation.GenerateHelper;
 
 @GenerateHelper
-public class Execution {
+public class ExecutionReport {
 
     private long id;
 
-    private ExecutionType type;
+    private ExecutionType executionType;
 
-    private int lastQty;
+    private double lastQty;
 
     private double lastPrice;
 
     private long transactTime;
 
-    private long bookId;
+    private String lastMarket;
 
     public long getId() {
         return id;
@@ -25,19 +25,19 @@ public class Execution {
         this.id = id;
     }
 
-    public ExecutionType getType() {
-        return type;
+    public ExecutionType getExecutionType() {
+        return executionType;
     }
 
-    public void setType(ExecutionType type) {
-        this.type = type;
+    public void setExecutionType(ExecutionType executionType) {
+        this.executionType = executionType;
     }
 
-    public int getLastQty() {
+    public double getLastQty() {
         return lastQty;
     }
 
-    public void setLastQty(int lastQty) {
+    public void setLastQty(double lastQty) {
         this.lastQty = lastQty;
     }
 
@@ -57,23 +57,22 @@ public class Execution {
         this.transactTime = transactTime;
     }
 
-    public long getBookId() {
-        return bookId;
+    public String getLastMarket() {
+        return lastMarket;
     }
 
-    public void setBookId(long bookId) {
-        this.bookId = bookId;
+    public void setLastMarket(String lastMarket) {
+        this.lastMarket = lastMarket;
     }
 
     @Override
     public String toString() {
         return "Execution{" +
                 "id=" + getId() +
-                ", type=" + getType() +
+                ", executionType=" + getExecutionType() +
                 ", lastQty=" + getLastQty() +
                 ", lastPrice=" + getLastPrice() +
                 ", transactTime=" + getTransactTime() +
-                ", bookId=" + getBookId() +
                 '}';
     }
 }
