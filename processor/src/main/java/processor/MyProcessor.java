@@ -1,3 +1,5 @@
+package processor;
+
 import com.squareup.javapoet.*;
 
 import javax.annotation.processing.AbstractProcessor;
